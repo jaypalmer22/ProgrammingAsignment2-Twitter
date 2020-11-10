@@ -3,7 +3,6 @@ import sys
 
 
 def clientTalk(username, host, port):
-    validated = False
     ClientSocket = socket.socket()
 
     try:
@@ -15,19 +14,17 @@ def clientTalk(username, host, port):
     nameString = "username " + username
     ClientSocket.send(nameString.encode())
 
-    # initial loop for validating username before entering command input loop
-    while not validated:
-        received = ClientSocket.recv(1024).decode()
+    # validating username before entering command input loop
+    received = ClientSocket.recv(1024).decode()
 
-        # Case: Username was invalid -> full stop
-        if received[0:2] == "-f":
-            print(received[3:len(received)])
-            exit()
+    # Case: username was invalid --> full stop
+    if received[0:2] == "-f":
+        print(received[3:len(received)])
+        exit()
 
-        # Case: username successfully validated
-        elif received[0:2] == "-s":
-            print(received[3:len(received)])
-            validated = True
+    # Case: username successfully validated
+    elif received[0:2] == "-s":
+        print(received[3:len(received)])
 
     # Command input loop
     while True:
