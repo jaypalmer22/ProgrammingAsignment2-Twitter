@@ -3,16 +3,64 @@ import os
 import sys
 from _thread import *
 
+# Username: Subscribed hashtags
+user_subs = {"Joseph": set()}
+
 
 def threaded_client(connection):
-    connection.send(str.encode('Welcome to the Server\n'))
+    validUser = False
+    username = ""
+
     while True:
-        data = connection.recv(2048)
-        reply = 'Server Says: ' + data.decode('utf-8')
-        if not data:
+        msg = connection.recv(2048).decode()
+        if not msg:
             break
-        connection.sendall(str.encode(reply))
-    connection.close()
+        split_msg = msg.split(' ')
+        command = split_msg[0]
+
+        # Process command
+        # Case: User has not yet validated username
+        if command == "username":
+            username_req = split_msg[1]
+
+            # check that username is valid (only alphanumeric characters)
+            if not username_req.isalnum():
+                connection.send("-f error: username has wrong format, connection refused".encode())
+
+            # check that username is not already in use
+            if user_subs.get(username_req) is not None:
+                connection.send("-f username illegal, connection refused".encode())
+
+            # username request was valid
+            else:
+                validUser = True
+                username = username_req
+                connection.send("-s username legal, connection established".encode())
+                # create new set to hold the user's hashtag subscriptions
+                user_subs[username_req] = set()
+
+        if command == "tweet":
+            x = 1
+        elif command == "subscribe":
+            x = 2
+        elif command == "unsubscribe":
+            x = 3
+        elif command == "timeline":
+            x = 4
+        elif command == "getusers":
+            x = 5
+        elif command == "gettweets":
+            x = 6
+        elif command == "exit":
+            # Check that this is subtracting from the thread count
+            # Only remove a registered username if connection is valid
+            if validUser:
+                del user_subs[username]
+            connection.close()
+            return
+        else:
+            # command given was invalid
+            x = 8
 
 
 def run_server(port):
