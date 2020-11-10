@@ -3,8 +3,28 @@ import os
 import sys
 from _thread import *
 
-# Username: Subscribed hashtags
+# Username mapped to connection
+user_connections = {}
+
+# Username mapped to hashtag subscriptions
 user_subs = {"Joseph": set()}
+
+# Hashtag mapped to subscribed usernames
+hashtag_subscribers = {}
+
+
+def process_hashline(hashline):
+    res = list()
+    if len(hashline) > 15 or ' ' in hashline or '##' in hashline:
+        return -1
+
+    hash_units = hashline[1:len(hashline)].split("#")
+    for i in range(0, len(hash_units)):
+        curr = hash_units[i]
+        if len(curr) == 0:
+            return -1
+        res.append(curr)
+    return res if len(res) <= 5 else -1
 
 
 def threaded_client(connection):
@@ -18,29 +38,69 @@ def threaded_client(connection):
         split_msg = msg.split(' ')
         command = split_msg[0]
 
-        # Process command
-        # Case: User has not yet validated username
+        print("Received: " + msg)
+
+        # Processing commands
+        ######################################################################################################
+        #       Validating Username
+        ######################################################################################################
         if command == "username":
             username_req = split_msg[1]
 
             # check that username is valid (only alphanumeric characters)
             if not username_req.isalnum():
-                connection.send("-f error: username has wrong format, connection refused".encode())
+                connection.send("-f error: username has wrong format, connection refused.".encode())
 
             # check that username is not already in use
             if user_subs.get(username_req) is not None:
-                connection.send("-f username illegal, connection refused".encode())
+                connection.send("-f username illegal, connection refused.".encode())
 
             # username request was valid
             else:
                 validUser = True
                 username = username_req
-                connection.send("-s username legal, connection established".encode())
+                connection.send("-s username legal, connection established.".encode())
                 # create new set to hold the user's hashtag subscriptions
                 user_subs[username_req] = set()
 
-        if command == "tweet":
-            x = 1
+        ######################################################################################################
+        #       Tweet Command
+        ######################################################################################################
+        elif command == "tweet":
+            # Parsing by quotations, should only have 3 segments: <command> <message> <hashline>
+            parsed = msg.split("\"")
+            if len(parsed) != 3 or len(parsed[1]) == 0:
+                connection.send("-f message format illegal.".encode())
+                break
+            elif len(parsed[1]) > 150:
+                connection.send("-f message length illegal, connection refused.".encode())
+                break
+            else:
+                hashtags = process_hashline(parsed[2].strip())
+                if hashtags == -1:
+                    connection.send("-f hashtag illegal format, connection refused.".encode())
+                    break
+
+                # Notify user that tweet was valid
+                connection.send("-t".encode())
+
+                # want to avoid sending tweet to some particular subscriber multiple times
+                # in the case that they are subscribed to multiple hashtags in this tweet
+                already_received = set()
+                for i in range(0, len(hashtags)):
+                    subscribers = hashtag_subscribers.get(hashtags[i])
+                    # no current subscribers to the hashtag, nothing to do
+                    if subscribers is None or len(subscribers) == 0:
+                        continue
+                    # loop through subscribers, broadcasting tweet to them if they haven't already
+                    # received it
+                    for x in range(0, len(subscribers)):
+                        if subscribers[x] in already_received:
+                            continue
+
+                        # need to add broadcasting functionality here, after checking if tweet validation works
+
+
         elif command == "subscribe":
             x = 2
         elif command == "unsubscribe":
@@ -56,6 +116,7 @@ def threaded_client(connection):
             # Only remove a registered username if connection is valid
             if validUser:
                 del user_subs[username]
+            connection.send("bye bye".encode())
             connection.close()
             return
         else:
@@ -88,6 +149,8 @@ if __name__ == '__main__':
     if len(sys.argv) != 2:
         print ("Invalid number of parameters, use format python3 ttweetsrv.py <ServerPort>")
         exit()
+
+
 
     # Check for valid port number
     try:

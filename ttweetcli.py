@@ -3,10 +3,11 @@ import sys
 
 
 def clientTalk(username, host, port):
+    validated = False
     ClientSocket = socket.socket()
 
     try:
-        ClientSocket.settimeout(5)
+        #ClientSocket.settimeout(5)
         ClientSocket.connect((host, port))
     except socket.error as e:
         print(str(e))
@@ -15,32 +16,38 @@ def clientTalk(username, host, port):
     ClientSocket.send(nameString.encode())
 
     # initial loop for validating username before entering command input loop
-    while True:
-        # Response from server, decode() removes "b'" from beginning of string
+    while not validated:
         received = ClientSocket.recv(1024).decode()
 
-        # Case: Username was invalid, will close the connection
+        # Case: Username was invalid -> full stop
         if received[0:2] == "-f":
             print(received[3:len(received)])
-            ClientSocket.send("exit".encode())
-            ClientSocket.close()
-            return
+            exit()
 
-        # Case: Username validated, will proceed to command loop
+        # Case: username successfully validated
         elif received[0:2] == "-s":
-            print()
-            break
-
-        # Case: Server sent back message which didn't start with result flag
-        else:
-            print("Server sent unknown result flag? Check username validation loop")
+            print(received[3:len(received)])
+            validated = True
 
     # Command input loop
     while True:
         Input = input()
         ClientSocket.send(str.encode(Input))
-        Response = ClientSocket.recv(1024)
-        print(Response.decode('utf-8'))
+        received = ClientSocket.recv(1024).decode()
+
+        # Case: Command failed
+        if received[0:2] == "-f":
+            print(received[3:len(received)])
+            continue
+
+        # Case: Tweet success, don't print anything
+        if received[0:2] == "-t":
+            continue
+
+        # Case: Safe exit
+        if received[0:2] == "-q":
+            print(received[3:len(received)])
+            return()
 
     ClientSocket.close()    # this was included in template?
 
