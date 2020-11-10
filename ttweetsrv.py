@@ -1,18 +1,7 @@
 import socket
 import os
+import sys
 from _thread import *
-
-ServerSocket = socket.socket()
-host = '127.0.0.1'
-port = 1233
-ThreadCount = 0
-try:
-    ServerSocket.bind((host, port))
-except socket.error as e:
-    print(str(e))
-
-print('Waitiing for a Connection..')
-ServerSocket.listen(5)
 
 
 def threaded_client(connection):
@@ -25,10 +14,41 @@ def threaded_client(connection):
         connection.sendall(str.encode(reply))
     connection.close()
 
-while True:
-    Client, address = ServerSocket.accept()
-    print('Connected to: ' + address[0] + ':' + str(address[1]))
-    start_new_thread(threaded_client, (Client, ))
-    ThreadCount += 1
-    print('Thread Number: ' + str(ThreadCount))
-ServerSocket.close()
+
+def run_server(port):
+    ServerSocket = socket.socket()
+    host = '127.0.0.1'
+    ThreadCount = 0
+    try:
+        ServerSocket.bind((host, port))
+    except socket.error as e:
+        print(str(e))
+
+    print('Waitiing for a Connection..')
+    ServerSocket.listen(5)
+
+    while True:
+        Client, address = ServerSocket.accept()
+        print('Connected to: ' + address[0] + ':' + str(address[1]))
+        start_new_thread(threaded_client, (Client, ))
+        ThreadCount += 1
+        print('Thread Number: ' + str(ThreadCount))
+    ServerSocket.close()
+
+
+if __name__ == '__main__':
+    if len(sys.argv) != 2:
+        print ("Invalid number of parameters, use format python3 ttweetsrv.py <ServerPort>")
+        exit()
+
+    # Check for valid port number
+    try:
+        port = int(sys.argv[1])
+        if port < 0 or port > pow(2, 16)-1:
+            print("\nerror: server port invalid, connection refused.")
+            exit()
+    except ValueError:
+        print("\nerror: server port invalid, connection refused.")
+        exit()
+
+    run_server(port)
