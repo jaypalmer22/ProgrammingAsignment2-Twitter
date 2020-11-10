@@ -40,7 +40,7 @@ def clientTalk(username, host, port):
             print(received[3:len(received)])
             continue
 
-        # Case: Tweet success, don't print anything
+        # Case: Tweet success, don't print anything?
         if received[0:2] == "-t":
             continue
 
@@ -49,7 +49,7 @@ def clientTalk(username, host, port):
             print(received[3:len(received)])
             return()
 
-    ClientSocket.close()    # this was included in template?
+    ClientSocket.close()
 
 
 if __name__ == '__main__':

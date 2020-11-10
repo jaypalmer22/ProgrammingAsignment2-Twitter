@@ -3,13 +3,14 @@ import os
 import sys
 from _thread import *
 
+
 # Username mapped to connection
 user_connections = {}
 
-# Username mapped to hashtag subscriptions
+# Username mapped to hashtag subscriptions (a set)
 user_subs = {"Joseph": set()}
 
-# Hashtag mapped to subscribed usernames
+# Hashtag mapped to subscribed usernames (a set)
 hashtag_subscribers = {}
 
 
@@ -26,6 +27,23 @@ def process_hashline(hashline):
         res.append(curr)
     return res if len(res) <= 5 else -1
 
+# unfinished method for sending a tweet to subscribers of various hashtags
+def broadcast(message, hashtags):
+    # want to avoid sending tweet to some particular subscriber multiple times
+    # in the case that they are subscribed to multiple hashtags in this tweet
+    already_received = set()
+    for i in range(0, len(hashtags)):
+        subscribers = hashtag_subscribers.get(hashtags[i])
+        # no current subscribers to the hashtag, nothing to do
+        if subscribers is None or len(subscribers) == 0:
+            continue
+        # loop through subscribers, broadcasting tweet to them if they haven't already
+        # received it
+        for x in range(0, len(subscribers)):
+            if subscribers[x] in already_received:
+                continue
+            target_connection = user_connections.get(subscribers[x])
+
 
 def threaded_client(connection):
     validUser = False
@@ -38,6 +56,7 @@ def threaded_client(connection):
         split_msg = msg.split(' ')
         command = split_msg[0]
 
+        # Remove print debugs later
         print("Received: " + msg)
 
         # Processing commands
@@ -84,22 +103,7 @@ def threaded_client(connection):
                 # Notify user that tweet was valid
                 connection.send("-t".encode())
 
-                # want to avoid sending tweet to some particular subscriber multiple times
-                # in the case that they are subscribed to multiple hashtags in this tweet
-                already_received = set()
-                for i in range(0, len(hashtags)):
-                    subscribers = hashtag_subscribers.get(hashtags[i])
-                    # no current subscribers to the hashtag, nothing to do
-                    if subscribers is None or len(subscribers) == 0:
-                        continue
-                    # loop through subscribers, broadcasting tweet to them if they haven't already
-                    # received it
-                    for x in range(0, len(subscribers)):
-                        if subscribers[x] in already_received:
-                            continue
-
-                        # need to add broadcasting functionality here, after checking if tweet validation works
-
+                # I am adding broadcasting functionality here, after checking if tweet validation works
 
         elif command == "subscribe":
             x = 2
@@ -112,7 +116,6 @@ def threaded_client(connection):
         elif command == "gettweets":
             x = 6
         elif command == "exit":
-            # Check that this is subtracting from the thread count
             # Only remove a registered username if connection is valid
             if validUser:
                 del user_subs[username]
@@ -149,8 +152,6 @@ if __name__ == '__main__':
     if len(sys.argv) != 2:
         print ("Invalid number of parameters, use format python3 ttweetsrv.py <ServerPort>")
         exit()
-
-
 
     # Check for valid port number
     try:
