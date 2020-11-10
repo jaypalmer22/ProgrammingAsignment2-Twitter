@@ -1,5 +1,29 @@
 import socket
 import sys
+from _thread import *
+
+
+def listener_thread(connection):
+    while True:
+        received = connection.recv(1024).decode()
+
+        # Case: Server sent a tweet to which we are subscribed
+        if received[0:2] == "-r":
+            print(received[3:len(received)])
+
+        # Case: Command failed, full stop not required
+        elif received[0:2] == "-f":
+            print(received[3:len(received)])
+
+        # Case: General success with print statement
+        elif received[0:2] == "-s":
+            print(received[3:len(received)])
+
+        # Case: Safe exit
+        # see if this actually closes not sure      @@@@@@@@@@@@@
+        elif received[0:2] == "-q":
+            print(received[3:len(received)])
+            exit()
 
 
 def clientTalk(username, host, port):
@@ -26,26 +50,13 @@ def clientTalk(username, host, port):
     elif received[0:2] == "-s":
         print(received[3:len(received)])
 
+    # Start new thread to listen for server responses while this thread blocks for input
+    start_new_thread(listener_thread, (ClientSocket,))
+
     # Command input loop
     while True:
         Input = input()
         ClientSocket.send(str.encode(Input))
-        received = ClientSocket.recv(1024).decode()
-
-        # Case: Command failed
-        if received[0:2] == "-f":
-            print(received[3:len(received)])
-            continue
-
-        # Case: Tweet success, don't print anything?
-        if received[0:2] == "-t":
-            continue
-
-        # Case: Safe exit
-        if received[0:2] == "-q":
-            print(received[3:len(received)])
-            return()
-
     ClientSocket.close()
 
 

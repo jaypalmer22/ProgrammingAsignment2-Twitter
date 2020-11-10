@@ -3,15 +3,17 @@ import os
 import sys
 from _thread import *
 
-
 # Username mapped to connection
+# Connections are added when a username is validated by the server
 user_connections = {}
 
 # Username mapped to hashtag subscriptions (a set)
 user_subs = {"Joseph": set()}
 
 # Hashtag mapped to subscribed usernames (a set)
-hashtag_subscribers = {}
+hashtag_subs = {"something": set()}
+
+curr_hashtags = set()
 
 
 def process_hashline(hashline):
@@ -27,22 +29,29 @@ def process_hashline(hashline):
         res.append(curr)
     return res if len(res) <= 5 else -1
 
+
 # unfinished method for sending a tweet to subscribers of various hashtags
 def broadcast(message, hashtags):
     # want to avoid sending tweet to some particular subscriber multiple times
     # in the case that they are subscribed to multiple hashtags in this tweet
     already_received = set()
     for i in range(0, len(hashtags)):
-        subscribers = hashtag_subscribers.get(hashtags[i])
+        subscribers = hashtag_subs.get(hashtags[i])
         # no current subscribers to the hashtag, nothing to do
         if subscribers is None or len(subscribers) == 0:
             continue
         # loop through subscribers, broadcasting tweet to them if they haven't already
         # received it
-        for x in range(0, len(subscribers)):
-            if subscribers[x] in already_received:
+        for x in subscribers:
+            if x in already_received:
                 continue
-            target_connection = user_connections.get(subscribers[x])
+            target_connection = user_connections.get(x)
+            if target_connection is None:
+                continue
+            # remove print debug later
+            print("Trying to send message to " + x)
+            message = "-r " + message
+            target_connection.send(message.encode())  # testing this
 
 
 def threaded_client(connection):
@@ -80,7 +89,8 @@ def threaded_client(connection):
                 username = username_req
                 connection.send("-s username legal, connection established.".encode())
                 # create new set to hold the user's hashtag subscriptions
-                user_subs[username_req] = set()
+                user_subs[username] = set()
+                user_connections[username] = connection
 
         ######################################################################################################
         #       Tweet Command
@@ -100,13 +110,43 @@ def threaded_client(connection):
                     connection.send("-f hashtag illegal format, connection refused.".encode())
                     break
 
-                # Notify user that tweet was valid
-                connection.send("-t".encode())
+                # Add any hashtags in the tweet which are not in curr_hashtags to curr_hashtags
 
-                # I am adding broadcasting functionality here, after checking if tweet validation works
+                # broadcast tweet to subscribers
+                broadcast(parsed[1], hashtags)
 
+        ######################################################################################################
+        #       Subscribe Command
+        ######################################################################################################
         elif command == "subscribe":
-            x = 2
+            # need to add check for split_msg length
+
+            target_hashtag = split_msg[1].strip()
+            target_hashtag = target_hashtag[1:len(target_hashtag)]
+
+            # If user is already subscribed to 3 hashtags, they cannot subscribe to more
+            count_subscribed = len(user_subs[username])
+            if count_subscribed == 3:
+                failure_message = "-f operation failed: sub #" + target_hashtag + " failed, already exists, " \
+                                                                                 "or exceeds 3 limitation"
+                connection.send(failure_message.encode())
+                break
+
+            #  #ALL only counts as 1 hashtag according to pdf, so don't need to handle special case?
+            user_subs[username].add(target_hashtag)
+
+            if hashtag_subs.get(target_hashtag) is None:
+                hashtag_subs[target_hashtag] = set()
+            hashtag_subs[target_hashtag].add(username)
+
+            # indicate success to client
+            connection.send("-s operation success".encode())
+
+            # Remove print debug later
+            print(username + " current subscriptions:\n")
+            for s in user_subs[username]:
+                print(s)
+
         elif command == "unsubscribe":
             x = 3
         elif command == "timeline":
@@ -142,7 +182,7 @@ def run_server(port):
     while True:
         Client, address = ServerSocket.accept()
         print('Connected to: ' + address[0] + ':' + str(address[1]))
-        start_new_thread(threaded_client, (Client, ))
+        start_new_thread(threaded_client, (Client,))
         ThreadCount += 1
         print('Thread Number: ' + str(ThreadCount))
     ServerSocket.close()
@@ -150,13 +190,13 @@ def run_server(port):
 
 if __name__ == '__main__':
     if len(sys.argv) != 2:
-        print ("Invalid number of parameters, use format python3 ttweetsrv.py <ServerPort>")
+        print("Invalid number of parameters, use format python3 ttweetsrv.py <ServerPort>")
         exit()
 
     # Check for valid port number
     try:
         port = int(sys.argv[1])
-        if port < 0 or port > pow(2, 16)-1:
+        if port < 0 or port > pow(2, 16) - 1:
             print("\nerror: server port invalid, connection refused.")
             exit()
     except ValueError:
