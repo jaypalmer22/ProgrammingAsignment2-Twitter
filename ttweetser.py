@@ -2,6 +2,7 @@ import socket
 import sys
 from _thread import *
 
+
 # Username mapped to connection
 user_connections = {}
 # Username mapped to hashtag subscriptions (a set)
@@ -61,7 +62,8 @@ def drop_user(username):
     del send_history[username]
 
     # remove user from list of subscribers to #ALL
-    all_subs.remove(username)
+    if username in all_subs:
+        all_subs.remove(username)
 
 
 def broadcast(message, hashtags, tweet_event):
@@ -289,7 +291,7 @@ def run_server(port):
 
 if __name__ == '__main__':
     if len(sys.argv) != 2:
-        print("Invalid number of parameters, use format python3 ttweetsrv.py <ServerPort>")
+        print("Invalid number of parameters, use format python3 ttweetser.py <ServerPort>")
         exit()
 
     # Check for valid port number

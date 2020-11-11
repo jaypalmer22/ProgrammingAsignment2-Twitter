@@ -69,7 +69,7 @@ def clientTalk(username, host, port):
 if __name__ == '__main__':
     # Make sure parameter count is correct (error message #5)
     if len(sys.argv) != 4:
-        print("\nInvalid number of parameters, use <ServerIP> <ServerPort> <Username>")
+        print("\nerror: args should contain <ServerIP> <ServerPort> <Username>")
         exit()
 
     # Make sure the server ip is valid (error message #1)
