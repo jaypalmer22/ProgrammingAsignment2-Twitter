@@ -125,12 +125,12 @@ def threaded_client(connection):
 
             # check that username is valid (only alphanumeric characters)
             if not username_req.isalnum():
-                connection.send("-b error: username has wrong format, connection refused.".encode())
+                connection.send("-f error: username has wrong format, connection refused.".encode())
                 #return # ?
 
             # check that username is not already in use
-            elif username_req in user_subs:
-                connection.send("-b username illegal, connection refused.".encode())
+            elif username_req in user_subs.keys():
+                connection.send("-f username illegal, connection refused.".encode())
 
             # username request was valid
             else:
@@ -150,15 +150,15 @@ def threaded_client(connection):
             parsed = msg.split("\"")
             if len(parsed) != 3 or len(parsed[1]) == 0:
                 connection.send("-f message format illegal.".encode())
-                #break
+                break
             elif len(parsed[1]) > 150:
                 connection.send("-f message length illegal, connection refused.".encode())
-                #break
+                break
             else:
                 hashtags = process_hashline(parsed[2].strip())
                 if hashtags == -1:
                     connection.send("-f hashtag illegal format, connection refused.".encode())
-                    #break
+                    break
 
                 # Add any hashtags in the tweet which are not in curr_hashtags to curr_hashtags
 
