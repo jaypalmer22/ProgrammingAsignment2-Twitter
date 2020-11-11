@@ -94,9 +94,11 @@ def broadcast(message, hashtags, tweet_event):
                 already_received.add(x)
 
 
+# just changed this to the tweet event str output...
 def send_tweet(recipient, message, tweet_event):
     target_connection = user_connections.get(recipient)
-    target_connection.send(message.encode())
+    str = "-r " + tweet_event.to_str()
+    target_connection.send(str.encode())
     recv_history[recipient].append(tweet_event)
 
 
@@ -123,11 +125,12 @@ def threaded_client(connection):
 
             # check that username is valid (only alphanumeric characters)
             if not username_req.isalnum():
-                connection.send("-f error: username has wrong format, connection refused.".encode())
+                connection.send("-b error: username has wrong format, connection refused.".encode())
+                #return # ?
 
             # check that username is not already in use
-            if user_subs.get(username_req) is not None:
-                connection.send("-f username illegal, connection refused.".encode())
+            elif username_req in user_subs:
+                connection.send("-b username illegal, connection refused.".encode())
 
             # username request was valid
             else:
@@ -147,15 +150,15 @@ def threaded_client(connection):
             parsed = msg.split("\"")
             if len(parsed) != 3 or len(parsed[1]) == 0:
                 connection.send("-f message format illegal.".encode())
-                break
+                #break
             elif len(parsed[1]) > 150:
                 connection.send("-f message length illegal, connection refused.".encode())
-                break
+                #break
             else:
                 hashtags = process_hashline(parsed[2].strip())
                 if hashtags == -1:
                     connection.send("-f hashtag illegal format, connection refused.".encode())
-                    break
+                    #break
 
                 # Add any hashtags in the tweet which are not in curr_hashtags to curr_hashtags
 
@@ -298,10 +301,10 @@ if __name__ == '__main__':
     try:
         port = int(sys.argv[1])
         if port < 0 or port > pow(2, 16) - 1:
-            print("\nerror: server port invalid, connection refused.")
+            print("error: server port invalid, connection refused.")
             exit()
     except ValueError:
-        print("\nerror: server port invalid, connection refused.")
+        print("error: server port invalid, connection refused.")
         exit()
 
     run_server(port)

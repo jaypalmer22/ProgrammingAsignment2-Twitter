@@ -7,7 +7,7 @@ listener_open = True
 
 def listener_thread(connection):
     while True:
-        received = connection.recv(1024).decode()
+        received = connection.recv(2048).decode()
 
         # Case: Server sent a tweet to which we are subscribed
         if received[0:2] == "-r":
@@ -34,7 +34,9 @@ def clientTalk(username, host, port):
     try:
         ClientSocket.connect((host, port))
     except socket.error as e:
-        print(str(e))
+        print("error: server port invalid, connection refused.")
+        #print(str(e))
+        return
 
     nameString = "username " + username
     ClientSocket.send(nameString.encode())
@@ -69,7 +71,7 @@ def clientTalk(username, host, port):
 if __name__ == '__main__':
     # Make sure parameter count is correct (error message #5)
     if len(sys.argv) != 4:
-        print("\nerror: args should contain <ServerIP> <ServerPort> <Username>")
+        print("error: args should contain <ServerIP> <ServerPort> <Username>")
         exit()
 
     # Make sure the server ip is valid (error message #1)
@@ -77,17 +79,17 @@ if __name__ == '__main__':
         serverIp = socket.inet_aton(sys.argv[1])
         serverName = str(sys.argv[1])
     except:
-        print("\nerror: server ip invalid, connection refused.")
+        print("error: server ip invalid, connection refused.")
         exit()
 
     # Make sure the port number is valid (error message #2)
     try:
         port = int(sys.argv[2])
         if port < 0 or port > pow(2, 16) - 1:
-            print("\nerror: server port invalid, connection refused.")
+            print("error: server port invalid, connection refused.")
             exit()
     except ValueError:
-        print("\nSpecified port is not a number")
+        print("Specified port is not a number")
         exit()
 
     username = sys.argv[3]
