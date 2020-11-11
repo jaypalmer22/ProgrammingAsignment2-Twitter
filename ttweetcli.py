@@ -22,10 +22,9 @@ def listener_thread(connection):
             print(received[3:len(received)])
 
         # Case: Safe exit
-        # see if this actually closes not sure      @@@@@@@@@@@@@
         elif received[0:2] == "-b":
             print(received[3:len(received)])
-            listener_open = False
+            connection.close()
             exit()
 
 
@@ -33,7 +32,6 @@ def clientTalk(username, host, port):
     ClientSocket = socket.socket()
 
     try:
-        #ClientSocket.settimeout(5)
         ClientSocket.connect((host, port))
     except socket.error as e:
         print(str(e))
@@ -59,11 +57,13 @@ def clientTalk(username, host, port):
     # Command input loop
     while True:
         Input = input()
-        # According to prof. on Piazza we can update after input
-        if not listener_open:
+
+        # According to professor Konte on Piazza, we can update after input if another thread closes the connection
+        try:
+            ClientSocket.send(str.encode(Input))
+        except:
             exit()
-        ClientSocket.send(str.encode(Input))
-    ClientSocket.close()
+    #ClientSocket.close()
 
 
 if __name__ == '__main__':

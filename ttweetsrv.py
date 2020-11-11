@@ -15,7 +15,9 @@ hashtag_subs = {"something": set()}
 
 curr_hashtags = set()
 
-user_history = {"something": list()}
+recv_history = {"something": list()}
+
+send_history = {"something": list()}
 
 
 
@@ -55,8 +57,11 @@ def drop_user(username):
     # remove user connection from current set
     del user_connections[username]
 
-    # clear user history
-    del user_history[username]
+    # clear user received history
+    del recv_history[username]
+
+    # clear user sent history
+    del send_history[username]
 
 
 def broadcast(message, hashtags, tweet_event):
@@ -83,11 +88,11 @@ def broadcast(message, hashtags, tweet_event):
             message = "-r " + message
             target_connection.send(message.encode())  # testing this
             already_received.add(x)
-            if user_history.get(x) is None:
-                user_history[x] = list()
+            if recv_history.get(x) is None:
+                recv_history[x] = list()
 
             # add tweet event to the client's history
-            user_history[x].append(tweet_event)
+            recv_history[x].append(tweet_event)
 
 
 def threaded_client(connection):
@@ -126,7 +131,8 @@ def threaded_client(connection):
                 connection.send("-s username legal, connection established.".encode())
                 user_subs[username] = set()
                 user_connections[username] = connection
-                user_history[username] = list()
+                recv_history[username] = list()
+                send_history[username] = list()
 
         ######################################################################################################
         #       Tweet Command
@@ -153,6 +159,7 @@ def threaded_client(connection):
 
                 # broadcast tweet to subscribers
                 broadcast(parsed[1], hashtags, tweet_event)
+                send_history[username].append(tweet_event)
 
         ######################################################################################################
         #       Subscribe Command
@@ -205,8 +212,8 @@ def threaded_client(connection):
         ######################################################################################################
         elif command == "timeline":
             tl_string = "-s "
-            if user_history.get(username) is not None:
-                for e in user_history[username]:
+            if recv_history.get(username) is not None:
+                for e in recv_history[username]:
                     tl_string += e.to_str() + "\n"
             connection.send(tl_string.encode())
 
@@ -219,18 +226,32 @@ def threaded_client(connection):
                 user_str += u + "\n"
             connection.send(user_str.encode())
 
+        ######################################################################################################
+        #       Get Tweets Command
+        ######################################################################################################
         elif command == "gettweets":
-            x = 6
+            query_user = split_msg[1]
+            if query_user not in user_connections:
+                connection.send("-f no user " + query_user + " in the system")
+            else:
+                twt_str = "-s "
+                for t in send_history[query_user]:
+                    twt_str += t.to_str() + "\n"
+                connection.send(twt_str.encode())
+
+        ######################################################################################################
+        #       Exit Command
+        ######################################################################################################
         elif command == "exit":
             # Only remove a registered username if connection is valid
             if validUser:
                 drop_user(username)
             connection.send("-b bye bye".encode())
-            connection.close()
             return
+
+        # unrecognized command
         else:
-            # command given was invalid
-            x = 8
+            print("Server received unrecognized command")
 
 
 def run_server(port):
