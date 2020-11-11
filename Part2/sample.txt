@@ -1,0 +1,41 @@
+1. root@LAPTOP-2CMV5OVC:/mnt/c/Users/jason/Documents# python3 ttweetcli.py -u 127.0.0.1 13000 "You have light and peace inside of you. If you let it out, you can change the world around you. -Iroh"
+
+Error: Server not found
+2. root@LAPTOP-2CMV5OVC:/mnt/c/Users/jason/Documents# python3 ttweetcli.py -d 127.0.0.1 13000
+
+Error: Server not found
+3. root@LAPTOP-2CMV5OVC:/mnt/c/users/jason/Documents# python3 ttweetsrv.py 13000
+The server is ready to receive at port:  13000
+
+4. root@LAPTOP-2CMV5OVC:/mnt/c/Users/jason/Documents# python3 ttweetcli.py -d 127.0.0.1 13000
+
+Tweet:
+5. root@LAPTOP-2CMV5OVC:/mnt/c/Users/jason/Documents# python3 ttweetcli.py -u 127.0.0.root@LAPTOP-2CMV5OVC:/mnt/c/Users/jason/Documents# python3 ttweetcli.py -u 127.0.0.1 13000 "It was, he thought, the difference between being dragged into the arena to face a battle to the death and walking into the arena with your head held high. Some people, perhaps, would say that there was little to choose between the two ways, but Dumbledore knew - and so do I, thought Harry, with a rush of fierce price, and so did my parents - that there was all the difference in the world."
+
+Error: Tweet is greater than 150 characters
+6. root@LAPTOP-2CMV5OVC:/mnt/c/Users/jason/Documents# python3 ttweetcli.py -d 127.0.0.1 13000
+
+Tweet:
+7. root@LAPTOP-2CMV5OVC:/mnt/c/Users/jason/Documents# python3 ttweetcli.py -u 127.0.0.1 13000 "You have light and peace inside of you. If you let it out, you can change the world around you. -Iroh"
+
+Tweet uploaded
+8. root@LAPTOP-2CMV5OVC:/mnt/c/Users/jason/Documents# python3 ttweetcli.py -d 127.0.0.1 13000
+
+Tweet: You have light and peace inside of you. If you let it out, you can change the world around you. -Iroh
+9. root@LAPTOP-2CMV5OVC:/mnt/c/Users/jason/Documents# python3 ttweetcli.py -u 127.0.0.1 13000 "If there ever comes a day when we can't be together, keep me in your heart, I'll stay there forever."
+
+Tweet uploaded
+10. root@LAPTOP-2CMV5OVC:/mnt/c/Users/jason/Documents# python3 ttweetcli.py -d 127.0.0.1 13000
+
+Tweet: If there ever comes a day when we can't be together, keep me in your heart, I'll stay there forever.
+11. root@LAPTOP-2CMV5OVC:/mnt/c/Users/jason/Documents# python3 ttweetcli.py -u 127.0.0.1 13000 "It was, he thought, the difference between being dragged into the arena to face a battle to the death and walking into the arena with your head held high. Some people, perhaps, would say that there was little to choose between the two ways, but Dumbledore knew - and so do I, thought Harry, with a rush of fierce price, and so did my parents - that there was all the difference in the world."
+
+Error: Tweet is greater than 150 characters
+12. root@LAPTOP-2CMV5OVC:/mnt/c/Users/jason/Documents# python3 ttweetcli.py -d 127.0.0.1 13000
+
+Tweet: If there ever comes a day when we can't be together, keep me in your heart, I'll stay there forever.
+
+
+Jason Palmer
+CS 3251
+Programming Assignment 1                                                     
