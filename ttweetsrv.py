@@ -1,24 +1,21 @@
 import socket
-import os
 import sys
 from _thread import *
 
 # Username mapped to connection
-# Connections are added when a username is validated by the server
 user_connections = {}
-
 # Username mapped to hashtag subscriptions (a set)
-user_subs = {"Joseph": set()}
-
+user_subs = {}
 # Hashtag mapped to subscribed usernames (a set)
-hashtag_subs = {"something": set()}
-
+hashtag_subs = {}
+# Current hashtags in use
 curr_hashtags = set()
-
-recv_history = {"something": list()}
-
-send_history = {"something": list()}
-
+# User mapped to their history of received tweets
+recv_history = {}
+# User mapped to their history of sent tweets
+send_history = {}
+# Usernames of users who subscribe to #ALL
+all_subs = set()
 
 
 class TweetEvent:
@@ -63,36 +60,42 @@ def drop_user(username):
     # clear user sent history
     del send_history[username]
 
+    # remove user from list of subscribers to #ALL
+    all_subs.remove(username)
+
 
 def broadcast(message, hashtags, tweet_event):
     # want to avoid sending tweet to some particular subscriber multiple times
     # in the case that they are subscribed to multiple hashtags in this tweet
     already_received = set()
+    message = "-r " + message
+
+    # Send to those who subscribe to #ALL
+    for s in all_subs:
+        if s not in already_received:
+            send_tweet(s, message, tweet_event)
+            already_received.add(s)
+
+    # Send to everyone else who subscribes to relevant hashtag
     for i in range(0, len(hashtags)):
         subscribers = hashtag_subs.get(hashtags[i])
-        # add functionalty for people who subscribe to #ALL
 
         # no current subscribers to the hashtag, nothing to do
         if subscribers is None or len(subscribers) == 0:
             continue
+
         # loop through subscribers, broadcasting tweet to them if they haven't already
         # received it
         for x in subscribers:
-            if x in already_received:
-                continue
-            target_connection = user_connections.get(x)
-            if target_connection is None:
-                continue
-            # remove print debug later
-            print("Trying to send message to " + x)
-            message = "-r " + message
-            target_connection.send(message.encode())  # testing this
-            already_received.add(x)
-            if recv_history.get(x) is None:
-                recv_history[x] = list()
+            if x not in already_received:
+                send_tweet(x, message, tweet_event)
+                already_received.add(x)
 
-            # add tweet event to the client's history
-            recv_history[x].append(tweet_event)
+
+def send_tweet(recipient, message, tweet_event):
+    target_connection = user_connections.get(recipient)
+    target_connection.send(message.encode())
+    recv_history[recipient].append(tweet_event)
 
 
 def threaded_client(connection):
@@ -176,17 +179,21 @@ def threaded_client(connection):
                 failure_message = "-f operation failed: sub #" + target_hashtag + " failed, already exists, " \
                                                                                  "or exceeds 3 limitation"
                 connection.send(failure_message.encode())
-                break
 
             #  #ALL only counts as 1 hashtag according to pdf, so don't need to handle special case?
-            user_subs[username].add(target_hashtag)
+            else:
+                user_subs[username].add(target_hashtag)
 
-            if hashtag_subs.get(target_hashtag) is None:
-                hashtag_subs[target_hashtag] = set()
-            hashtag_subs[target_hashtag].add(username)
+                if hashtag_subs.get(target_hashtag) is None:
+                    hashtag_subs[target_hashtag] = set()
+                hashtag_subs[target_hashtag].add(username)
 
-            # indicate success to client
-            connection.send("-s operation success".encode())
+                if target_hashtag == "ALL":
+                    all_subs.add(username)
+
+                # indicate success to client
+                connection.send("-s operation success".encode())
+
 
             # Remove print debug later
             print(username + " current subscriptions:\n")
@@ -200,9 +207,14 @@ def threaded_client(connection):
             target_hashtag = split_msg[1].strip()
             target_hashtag = target_hashtag[1:len(target_hashtag)]
 
-            if hashtag_subs.get(target_hashtag) is None:
-                hashtag_subs[target_hashtag] = set()
-            else:
+            if target_hashtag == "ALL":
+                if username in all_subs:
+                    all_subs.remove(username)
+                for h in user_subs.get(username):
+                    hashtag_subs[h].remove(username)
+                user_subs[username] = set()
+                connection.send("-s operation success".encode())
+            elif target_hashtag in hashtag_subs:
                 hashtag_subs[target_hashtag].remove(username)
                 user_subs[username].remove(target_hashtag)
                 connection.send("-s operation success".encode())
