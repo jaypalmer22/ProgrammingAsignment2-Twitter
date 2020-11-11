@@ -15,6 +15,19 @@ hashtag_subs = {"something": set()}
 
 curr_hashtags = set()
 
+user_history = {"something": list()}
+
+
+
+class TweetEvent:
+    def __init__(self, sender, message, hashline):
+        self.sender = sender
+        self.message = message
+        self.hashline = hashline
+
+    def to_str(self):
+        return self.sender + ": \"" + self.message + "\" " + self.hashline
+
 
 def process_hashline(hashline):
     res = list()
@@ -30,13 +43,30 @@ def process_hashline(hashline):
     return res if len(res) <= 5 else -1
 
 
-# unfinished method for sending a tweet to subscribers of various hashtags
-def broadcast(message, hashtags):
+def drop_user(username):
+    # remove user from hashtag:subscriber mapping
+    for h in user_subs[username]:
+        hashtag_subs[h].remove(username)
+        if len(hashtag_subs[h]) == 0:
+            del hashtag_subs[h]
+    # remove user from user:subscriptions mapping
+    del user_subs[username]
+
+    # remove user connection from current set
+    del user_connections[username]
+
+    # clear user history
+    del user_history[username]
+
+
+def broadcast(message, hashtags, tweet_event):
     # want to avoid sending tweet to some particular subscriber multiple times
     # in the case that they are subscribed to multiple hashtags in this tweet
     already_received = set()
     for i in range(0, len(hashtags)):
         subscribers = hashtag_subs.get(hashtags[i])
+        # add functionalty for people who subscribe to #ALL
+
         # no current subscribers to the hashtag, nothing to do
         if subscribers is None or len(subscribers) == 0:
             continue
@@ -52,6 +82,12 @@ def broadcast(message, hashtags):
             print("Trying to send message to " + x)
             message = "-r " + message
             target_connection.send(message.encode())  # testing this
+            already_received.add(x)
+            if user_history.get(x) is None:
+                user_history[x] = list()
+
+            # add tweet event to the client's history
+            user_history[x].append(tweet_event)
 
 
 def threaded_client(connection):
@@ -88,9 +124,9 @@ def threaded_client(connection):
                 validUser = True
                 username = username_req
                 connection.send("-s username legal, connection established.".encode())
-                # create new set to hold the user's hashtag subscriptions
                 user_subs[username] = set()
                 user_connections[username] = connection
+                user_history[username] = list()
 
         ######################################################################################################
         #       Tweet Command
@@ -112,8 +148,11 @@ def threaded_client(connection):
 
                 # Add any hashtags in the tweet which are not in curr_hashtags to curr_hashtags
 
+                # Create new TweetEvent for user history
+                tweet_event = TweetEvent(username, parsed[1], parsed[2].strip())
+
                 # broadcast tweet to subscribers
-                broadcast(parsed[1], hashtags)
+                broadcast(parsed[1], hashtags, tweet_event)
 
         ######################################################################################################
         #       Subscribe Command
@@ -147,19 +186,46 @@ def threaded_client(connection):
             for s in user_subs[username]:
                 print(s)
 
+        ######################################################################################################
+        #       Unsubscribe Command
+        ######################################################################################################
         elif command == "unsubscribe":
-            x = 3
+            target_hashtag = split_msg[1].strip()
+            target_hashtag = target_hashtag[1:len(target_hashtag)]
+
+            if hashtag_subs.get(target_hashtag) is None:
+                hashtag_subs[target_hashtag] = set()
+            else:
+                hashtag_subs[target_hashtag].remove(username)
+                user_subs[username].remove(target_hashtag)
+                connection.send("-s operation success".encode())
+
+        ######################################################################################################
+        #       Timeline Command
+        ######################################################################################################
         elif command == "timeline":
-            x = 4
+            tl_string = "-s "
+            if user_history.get(username) is not None:
+                for e in user_history[username]:
+                    tl_string += e.to_str() + "\n"
+            connection.send(tl_string.encode())
+
+        ######################################################################################################
+        #       Get Users Command
+        ######################################################################################################
         elif command == "getusers":
-            x = 5
+            user_str = "-s "
+            for u in user_connections.keys():
+                user_str += u + "\n"
+            connection.send(user_str.encode())
+
         elif command == "gettweets":
             x = 6
         elif command == "exit":
             # Only remove a registered username if connection is valid
             if validUser:
-                del user_subs[username]
-            connection.send("bye bye".encode())
+                drop_user(username)
+            connection.send("-b bye bye".encode())
             connection.close()
             return
         else:

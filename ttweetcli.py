@@ -2,6 +2,8 @@ import socket
 import sys
 from _thread import *
 
+listener_open = True
+
 
 def listener_thread(connection):
     while True:
@@ -21,8 +23,9 @@ def listener_thread(connection):
 
         # Case: Safe exit
         # see if this actually closes not sure      @@@@@@@@@@@@@
-        elif received[0:2] == "-q":
+        elif received[0:2] == "-b":
             print(received[3:len(received)])
+            listener_open = False
             exit()
 
 
@@ -56,6 +59,9 @@ def clientTalk(username, host, port):
     # Command input loop
     while True:
         Input = input()
+        # According to prof. on Piazza we can update after input
+        if not listener_open:
+            exit()
         ClientSocket.send(str.encode(Input))
     ClientSocket.close()
 
