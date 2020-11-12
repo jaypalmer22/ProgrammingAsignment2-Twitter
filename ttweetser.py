@@ -247,7 +247,8 @@ def threaded_client(connection):
         elif validUser and command == "gettweets":
             query_user = split_msg[1]
             if query_user not in user_connections:
-                connection.send("-f no user " + query_user + " in the system")
+                no_usr_str = "-f no user " + query_user + " in the system."
+                connection.send(no_usr_str.encode())
             else:
                 twt_str = "-s "
                 for t in send_history[query_user]:
