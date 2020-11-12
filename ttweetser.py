@@ -179,7 +179,7 @@ def threaded_client(connection):
             # If user is already subscribed to 3 hashtags, they cannot subscribe to more
             count_subscribed = len(user_subs[username])
             if count_subscribed == 3:
-                failure_message = "-f operation failed: sub #" + target_hashtag + " failed, already exists, " \
+                failure_message = "-f operation failed: sub #" + target_hashtag + " failed, already exists " \
                                                                                  "or exceeds 3 limitation"
                 connection.send(failure_message.encode())
 
