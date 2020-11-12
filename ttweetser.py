@@ -125,12 +125,11 @@ def threaded_client(connection):
 
             # check that username is valid (only alphanumeric characters)
             if not username_req.isalnum():
-                connection.send("-f error: username has wrong format, connection refused.".encode())
-                #return # ?
+                connection.send("iu error: username has wrong format, connection refused.".encode())
 
             # check that username is not already in use
             elif username_req in user_subs.keys():
-                connection.send("-f username illegal, connection refused.".encode())
+                connection.send("iu username illegal, connection refused.".encode())
 
             # username request was valid
             else:
@@ -145,20 +144,19 @@ def threaded_client(connection):
         ######################################################################################################
         #       Tweet Command
         ######################################################################################################
-        elif command == "tweet":
+        elif validUser and command == "tweet":
             # Parsing by quotations, should only have 3 segments: <command> <message> <hashline>
             parsed = msg.split("\"")
             if len(parsed) != 3 or len(parsed[1]) == 0:
                 connection.send("-f message format illegal.".encode())
-                break
+
             elif len(parsed[1]) > 150:
                 connection.send("-f message length illegal, connection refused.".encode())
-                break
+
             else:
                 hashtags = process_hashline(parsed[2].strip())
                 if hashtags == -1:
                     connection.send("-f hashtag illegal format, connection refused.".encode())
-                    break
 
                 # Add any hashtags in the tweet which are not in curr_hashtags to curr_hashtags
 
@@ -172,7 +170,7 @@ def threaded_client(connection):
         ######################################################################################################
         #       Subscribe Command
         ######################################################################################################
-        elif command == "subscribe":
+        elif validUser and command == "subscribe":
             # need to add check for split_msg length
 
             target_hashtag = split_msg[1].strip()
@@ -208,7 +206,7 @@ def threaded_client(connection):
         ######################################################################################################
         #       Unsubscribe Command
         ######################################################################################################
-        elif command == "unsubscribe":
+        elif validUser and command == "unsubscribe":
             target_hashtag = split_msg[1].strip()
             target_hashtag = target_hashtag[1:len(target_hashtag)]
 
@@ -227,7 +225,7 @@ def threaded_client(connection):
         ######################################################################################################
         #       Timeline Command
         ######################################################################################################
-        elif command == "timeline":
+        elif validUser and command == "timeline":
             tl_string = "-s "
             if recv_history.get(username) is not None:
                 for e in recv_history[username]:
@@ -237,7 +235,7 @@ def threaded_client(connection):
         ######################################################################################################
         #       Get Users Command
         ######################################################################################################
-        elif command == "getusers":
+        elif validUser and command == "getusers":
             user_str = "-s "
             for u in user_connections.keys():
                 user_str += u + "\n"
@@ -246,7 +244,7 @@ def threaded_client(connection):
         ######################################################################################################
         #       Get Tweets Command
         ######################################################################################################
-        elif command == "gettweets":
+        elif validUser and command == "gettweets":
             query_user = split_msg[1]
             if query_user not in user_connections:
                 connection.send("-f no user " + query_user + " in the system")
@@ -264,7 +262,7 @@ def threaded_client(connection):
             if validUser:
                 drop_user(username)
             connection.send("-b bye bye".encode())
-            return
+            exit_thread()
 
         # unrecognized command
         else:

@@ -13,6 +13,11 @@ def listener_thread(connection):
         if received[0:2] == "-r":
             print(received[3:len(received)])
 
+        # experimenting: invalid name
+        if received[0:2] == "iu":
+            print(received[3:len(received)])
+            exit_thread()
+
         # Case: Command failed, full stop not required
         elif received[0:2] == "-f":
             print(received[3:len(received)])
@@ -25,7 +30,7 @@ def listener_thread(connection):
         elif received[0:2] == "-b":
             print(received[3:len(received)])
             connection.close()
-            exit()
+            exit_thread()
 
 
 def clientTalk(username, host, port):
@@ -42,12 +47,13 @@ def clientTalk(username, host, port):
     ClientSocket.send(nameString.encode())
 
     # validating username before entering command input loop
-    received = ClientSocket.recv(1024).decode()
+    received = ClientSocket.recv(2048).decode()
 
     # Case: username was invalid --> full stop
-    if received[0:2] == "-f":
+    if received[0:2] == "iu":
         print(received[3:len(received)])
-        exit()
+        ClientSocket.send("exit".encode())
+        return
 
     # Case: username successfully validated
     elif received[0:2] == "-s":
